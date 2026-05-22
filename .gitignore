@@ -59,6 +59,7 @@ build/
 managed_components/
 dependencies.lock
 sdkconfig.old
+sdkconfig
 
 # audio data files
 dataset/
