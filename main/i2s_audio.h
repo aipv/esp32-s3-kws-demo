@@ -1,7 +1,11 @@
-#ifndef I2S_AUDIO_H
-#define I2S_AUDIO_H
+#pragma once
 
-#include <stdio.h>
+#include "esp_err.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "esp_log.h"
 #include "driver/i2s_std.h"
 #include "freertos/FreeRTOS.h"
@@ -29,4 +33,6 @@ esp_err_t i2s_audio_play_data(int32_t *buffer, int samples);
 esp_err_t i2s_audio_stream_data(int pcm16_flag);
 esp_err_t i2s_audio_stop_stream();
 
-#endif // I2S_AUDIO_H
+#ifdef __cplusplus
+}
+#endif
