@@ -1,5 +1,6 @@
 set(requires
     esp_driver_i2s
+    led_strip
     )
 
 idf_component_register(SRCS main.cpp i2s_audio.c

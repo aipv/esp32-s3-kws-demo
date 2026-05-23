@@ -5,8 +5,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "led_strip.h"
+#include "esp_err.h"
 #include "esp_log.h"
-
 #include "i2s_audio.h"
 
 #include "edge-impulse-sdk/classifier/ei_run_classifier.h"
@@ -14,9 +15,22 @@
 #define EI_BUFFER_SIZE 16000
 #define EI_THRESHOLD   0.85f
 
+#define LED_GPIO 48
+#define LED_NUM  1
+
 static const char *TAG = "KWS";
 
 static int16_t inference_buffer[EI_BUFFER_SIZE];
+static led_strip_handle_t led_strip;
+
+static void detection_handle()
+{
+    ESP_ERROR_CHECK(led_strip_set_pixel(led_strip, 0, 255, 0, 0));
+    ESP_ERROR_CHECK(led_strip_refresh(led_strip));
+    vTaskDelay(pdMS_TO_TICKS(3000));
+    ESP_ERROR_CHECK(led_strip_set_pixel(led_strip, 0, 0, 255, 0));
+    ESP_ERROR_CHECK(led_strip_refresh(led_strip));
+}
 
 static int get_signal_data(
     size_t offset,
@@ -38,6 +52,32 @@ extern "C" void app_main(void)
     ESP_LOGI(TAG, "Init I2S microphone");
 
     i2s_audio_mic_init();
+
+
+    led_strip_config_t strip_config = {
+        .strip_gpio_num = LED_GPIO,
+        .max_leds = LED_NUM,
+    };
+
+    led_strip_rmt_config_t rmt_config = {
+        .resolution_hz = 10 * 1000 * 1000,
+    };
+
+    ESP_ERROR_CHECK(
+        led_strip_new_rmt_device(
+            &strip_config,
+            &rmt_config,
+            &led_strip
+        )
+    );
+
+    ESP_ERROR_CHECK(
+        led_strip_set_pixel(led_strip, 0, 0, 255, 0)
+    );
+
+    ESP_ERROR_CHECK(
+        led_strip_refresh(led_strip)
+    );
 
     /*
      * 每次从 I2S 读取 512 samples
@@ -149,13 +189,6 @@ extern "C" void app_main(void)
              ix < EI_CLASSIFIER_LABEL_COUNT;
              ix++)
         {
-            ESP_LOGI(
-                TAG,
-                "%s = %.3f",
-                result.classification[ix].label,
-                result.classification[ix].value
-            );
-
             /*
              * 找到 wakeword label
              */
@@ -166,6 +199,12 @@ extern "C" void app_main(void)
             {
                 wakeword_score =
                     result.classification[ix].value;
+                ESP_LOGI(
+                    TAG,
+                    "%s = %.3f",
+                    result.classification[ix].label,
+                    result.classification[ix].value
+                );
             }
         }
 
@@ -182,6 +221,7 @@ extern "C" void app_main(void)
                 hit_count,
                 wakeword_score
             );
+            detection_handle();
         }
         else
         {
